@@ -23,8 +23,9 @@ import { Sun } from '../render/vaporwave/sun';
 import { GridFloor } from '../render/vaporwave/grid';
 import { Palms } from '../render/vaporwave/palms';
 import { Compositor } from '../recording/compositor';
-import { RunRecorder } from '../recording/recorder';
+import { RunRecorder, downloadRecording } from '../recording/recorder';
 import { Hud } from '../ui/hud';
+import { showPauseMenu } from '../ui/screens/pauseMenu';
 
 export interface GameOptions {
   core: RenderCore;
@@ -35,6 +36,8 @@ export interface GameOptions {
   webcamVideo: HTMLVideoElement | null;
   includeVoiceInRecording: boolean;
   onFinish: (stats: RunStats, recording: Blob) => void;
+  onRestart: () => void; // pause → restart the same song (Game disposes itself first)
+  onExitToMenu: () => void; // pause → back to the start screen
 }
 
 export class Game {
@@ -44,6 +47,7 @@ export class Game {
   private postfx: PostFx;
   private platforms: Platforms;
   private spikes: Spikes;
+  private sky: THREE.Mesh;
   private sun: Sun;
   private grid: GridFloor;
   private palms: Palms;
@@ -63,10 +67,18 @@ export class Game {
   private hudAccum = 0;
   private spikeCooldown = 0;
   private ending = false;
+  private paused = false;
+  private pauseMenuDispose: (() => void) | null = null;
   private floor: number;
   private ceil: number;
   private lastSphereZ = 0;
   private onResize = () => this.handleResize();
+  private onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.togglePause();
+    }
+  };
 
   constructor(private opts: GameOptions) {
     const { core, song } = opts;
@@ -78,7 +90,7 @@ export class Game {
     const level = buildLevel(song);
     this.platforms = new Platforms(this.scene, level.platforms);
     this.spikes = new Spikes(this.scene, level.spikeRows);
-    createSky(this.scene);
+    this.sky = createSky(this.scene);
     this.sun = new Sun(this.scene);
     this.floor = floorY(song.registerMin, song.registerCenter);
     this.ceil = midiToY(song.registerMax, song.registerCenter) + CONFIG.ceilingMarginSemitones * CONFIG.semitoneHeight;
@@ -108,7 +120,7 @@ export class Game {
       (i) => this.platforms.hit(i),
     );
     this.scoring = new Scoring(this.judge.responseCount); // demo notes don't count
-    this.hud = new Hud(opts.uiParent, true);
+    this.hud = new Hud(opts.uiParent, true, () => this.togglePause());
     this.hud.pitchMeter.setRange(song.registerMin, song.registerMax);
   }
 
@@ -135,9 +147,56 @@ export class Game {
       audio.recordDest.stream.getAudioTracks()[0],
     );
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('keydown', this.onKey);
+    audio.ensureRunning(); // guard against a suspended context (so pitch input flows)
     audio.play();
     this.lastTime = performance.now();
     this.rafId = requestAnimationFrame(this.frame);
+  }
+
+  togglePause(): void {
+    if (this.ending) return;
+    if (this.paused) this.resumeGame();
+    else this.pauseGame();
+  }
+
+  private pauseGame(): void {
+    if (this.paused || this.ending) return;
+    this.paused = true;
+    cancelAnimationFrame(this.rafId);
+    this.opts.audio.pause();
+    this.lead.releaseAll(); // stop the sustaining pitch-reference note (it would drone)
+    this.recorder.pause();
+    this.pauseMenuDispose = showPauseMenu(this.opts.uiParent, {
+      hasRecording: this.recorder.active,
+      onContinue: () => this.resumeGame(),
+      onRestart: (save) => void this.exitTo('restart', save),
+      onMenu: (save) => void this.exitTo('menu', save),
+    });
+  }
+
+  private resumeGame(): void {
+    if (!this.paused || this.ending) return;
+    this.paused = false;
+    this.pauseMenuDispose?.();
+    this.pauseMenuDispose = null;
+    this.opts.audio.resume();
+    this.recorder.resume();
+    this.lastTime = performance.now(); // avoid a dt spike on the first resumed frame
+    this.rafId = requestAnimationFrame(this.frame);
+  }
+
+  /** Leave a paused run, optionally saving the recording first. */
+  private async exitTo(action: 'restart' | 'menu', save: boolean): Promise<void> {
+    if (this.ending) return;
+    this.ending = true;
+    this.pauseMenuDispose?.();
+    this.pauseMenuDispose = null;
+    const blob = await this.recorder.stop();
+    if (save) downloadRecording(blob);
+    this.dispose();
+    if (action === 'restart') this.opts.onRestart();
+    else this.opts.onExitToMenu();
   }
 
   /** Mount the live webcam feed as an on-screen picture-in-picture bubble. */
@@ -192,6 +251,7 @@ export class Game {
     this.lastSphereZ = z;
     this.platforms.update(dt);
     this.rig.update(dt, this.player.y, z);
+    this.sky.position.copy(this.camera.position); // keep the dome around the camera
     this.sun.update(this.camera.position);
     this.grid.update(this.camera);
     this.palms.update(this.camera.position.z);
@@ -247,6 +307,9 @@ export class Game {
 
   private dispose(): void {
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('keydown', this.onKey);
+    this.pauseMenuDispose?.();
+    this.pauseMenuDispose = null;
     this.opts.audio.unloadSong();
     this.opts.audio.setMicInRecording(false);
     this.demoLead?.dispose();

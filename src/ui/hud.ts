@@ -15,7 +15,7 @@ export class Hud {
   private promptMode: 'listen' | 'sing' | null = null;
   readonly pitchMeter = new PitchMeter();
 
-  constructor(parent: HTMLElement, recording: boolean) {
+  constructor(parent: HTMLElement, recording: boolean, onPause?: () => void) {
     this.root = document.createElement('div');
     this.root.className = 'hud';
     this.root.innerHTML = `
@@ -25,6 +25,7 @@ export class Hud {
         <div class="hud-stat"><span class="hud-label">ACC</span><span class="hud-acc">100%</span></div>
         <div class="hud-health"></div>
         ${recording ? '<div class="hud-rec"><span class="rec-dot"></span>REC</div>' : ''}
+        <button class="hud-pause" title="Pause (Esc)">⏸</button>
       </div>
       <div class="hud-prompt"></div>
       <div class="hud-judgement"></div>
@@ -35,6 +36,7 @@ export class Hud {
     this.healthEl = this.root.querySelector('.hud-health')!;
     this.judgementEl = this.root.querySelector('.hud-judgement')!;
     this.promptEl = this.root.querySelector('.hud-prompt')!;
+    if (onPause) this.root.querySelector('.hud-pause')!.addEventListener('click', onPause);
     this.root.appendChild(this.pitchMeter.el);
     parent.appendChild(this.root);
     this.setHealth(CONFIG.maxHealth);

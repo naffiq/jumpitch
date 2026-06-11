@@ -83,8 +83,16 @@ export class App {
     if (this.wantWebcam && !this.webcam) {
       try {
         this.webcam = await initWebcam();
-      } catch {
-        this.webcam = null; // permission denied — proceed without it
+      } catch (err) {
+        // Permission denied / camera busy — proceed without it. A non-blocking
+        // toast (NOT alert(), which would suspend the AudioContext and freeze
+        // pitch input) tells the player.
+        console.warn('[jumpitch] webcam unavailable:', err);
+        const name = (err as Error).name;
+        const hint =
+          name === 'NotReadableError' ? ' — close other apps using the camera' : '';
+        this.showToast(`Webcam off (${name})${hint}. Playing without it.`);
+        this.webcam = null;
       }
     }
     if (!this.pitch) return;
@@ -98,6 +106,15 @@ export class App {
       webcamVideo: this.wantWebcam ? (this.webcam?.video ?? null) : null,
       includeVoiceInRecording: this.includeVoice,
       onFinish: (stats, blob) => this.onRunFinished(song, stats, blob),
+      onRestart: () => {
+        this.game = null;
+        void this.beginRun(song);
+      },
+      onExitToMenu: () => {
+        this.game = null;
+        this.stopWebcam();
+        this.toStart();
+      },
     });
     this.game.start();
   }
@@ -119,5 +136,15 @@ export class App {
   private stopWebcam(): void {
     this.webcam?.stop();
     this.webcam = null;
+  }
+
+  /** Non-blocking transient notice (never use alert() — it stalls the audio thread). */
+  private showToast(message: string): void {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = message;
+    this.uiRoot.appendChild(el);
+    setTimeout(() => el.classList.add('toast-out'), 3500);
+    setTimeout(() => el.remove(), 4100);
   }
 }

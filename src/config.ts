@@ -12,18 +12,26 @@ export const CONFIG = {
   maxDt: 0.05,
   ceilingMarginSemitones: 6, // how far above the highest note the sphere may rise
 
-  // Pitch detection
-  fftSize: 2048,
-  clarityThreshold: 0.93,
+  // Pitch detection. Frame counts below are now in worklet hops (~5 ms each),
+  // not render frames, so the same counts cost far less wall-clock latency.
+  clarityThreshold: 0.85, // YIN confidence (1 - aperiodicity at the detected lag)
   rmsThreshold: 0.015,
-  minFreq: 55,
+  minFreq: 55, // main-thread sanity gate on reported freq
   maxFreq: 1200,
-  voicedFramesIn: 3,
-  voicedFramesOut: 5,
-  medianWindow: 5,
+  voicedFramesIn: 2, // hops of voiced audio before the sphere starts following
+  voicedFramesOut: 4, // hops of silence before it lets go
+  medianWindow: 3, // median filter length (kills octave-error spikes)
+
+  // Audio-thread pitch worklet
+  worklet: {
+    hopSize: 256, // run a detection every N samples (~5.3 ms @ 48 kHz)
+    defaultMinFreq: 80, // window is sized to this until calibration narrows it
+    maxFreq: 1100,
+    yinThreshold: 0.12,
+  },
 
   // Judging
-  inputLatencyComp: 0.09, // seconds subtracted from transport time when judging
+  inputLatencyComp: 0.05, // seconds subtracted from transport time (worklet cut real latency)
   hitWindowPad: 0.12, // seconds before/after a note that still count
   hitToleranceSemitones: 1.5,
   offFramesRelease: 5, // consecutive off frames before lead synth releases
@@ -43,6 +51,17 @@ export const CONFIG = {
   maxHealth: 5,
   scorePerfect: 300,
   scoreGood: 100,
+
+  // Lead reference guide: the target note always sounds during its span so the
+  // player has a pitch reference — muffled + quiet when off, bright + full when
+  // matched. Set refGain to 0 to disable (notes then only sound when hit).
+  lead: {
+    refCutoff: 480, // Hz low-pass when off-pitch (muffled reference)
+    openCutoff: 9000, // Hz low-pass when on-pitch (bright/open)
+    refGain: 0.3, // linear output gain when off-pitch
+    onGain: 1.0, // linear output gain when on-pitch
+    matchRamp: 0.06, // seconds to glide between the two states
+  },
 
   // Recording
   recordWidth: 1280,

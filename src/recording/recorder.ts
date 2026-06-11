@@ -33,6 +33,19 @@ export class RunRecorder {
     this.recorder.start(1000); // timeslice avoids one giant end-of-run blob
   }
 
+  /** True while recording or paused (i.e. there is a live recording to control). */
+  get active(): boolean {
+    return !!this.recorder && this.recorder.state !== 'inactive';
+  }
+
+  pause(): void {
+    if (this.recorder && this.recorder.state === 'recording') this.recorder.pause();
+  }
+
+  resume(): void {
+    if (this.recorder && this.recorder.state === 'paused') this.recorder.resume();
+  }
+
   stop(): Promise<Blob> {
     return new Promise((resolve) => {
       const rec = this.recorder;
@@ -44,7 +57,19 @@ export class RunRecorder {
         rec.stream.getVideoTracks().forEach((t) => t.stop());
         resolve(new Blob(this.chunks, { type: this.mime || 'video/webm' }));
       };
-      rec.stop();
+      rec.stop(); // flushes remaining data even from a paused recorder
     });
   }
+}
+
+/** Trigger a browser download of a recording blob. */
+export function downloadRecording(blob: Blob, filename = 'jumpitch-run.webm'): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }

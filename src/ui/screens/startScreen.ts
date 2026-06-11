@@ -3,6 +3,7 @@
 // that measures ambient noise and proves pitch detection works before play.
 
 import { midiToNoteName } from '../../types';
+import { CONFIG } from '../../config';
 import type { AudioEngine } from '../../audio/audioEngine';
 import { BUILTIN_SONGS } from '../../audio/builtinSongs';
 import { initMic, type MicInput } from '../../pitch/micInput';
@@ -48,8 +49,8 @@ export function showStartScreen(
       <div class="midi-chosen" hidden></div>
 
       <div class="toggles">
-        <label class="toggle"><input type="checkbox" class="t-webcam"> Webcam bubble</label>
-        <label class="toggle"><input type="checkbox" class="t-voice"> Record my voice too</label>
+        <label class="toggle"><input type="checkbox" class="t-webcam" checked> Webcam bubble</label>
+        <label class="toggle"><input type="checkbox" class="t-voice" checked> Record my voice too</label>
       </div>
 
       <div class="mic-area">
@@ -79,6 +80,7 @@ export function showStartScreen(
   let ambientSum = 0;
   let ambientCount = 0;
   let stablePitchSeen = false;
+  let windowTuned = false;
 
   const songCards = Array.from(root.querySelectorAll<HTMLElement>('.song-card'));
   const midiInput = root.querySelector<HTMLInputElement>('.midi-input')!;
@@ -125,9 +127,13 @@ export function showStartScreen(
     micBtn.textContent = 'Requesting…';
     try {
       await audio.start(); // AudioContext resume on user gesture
-      mic = await initMic(audio.context, 2048);
+      mic = await initMic(audio.context, {
+        minFreq: CONFIG.worklet.defaultMinFreq,
+        maxFreq: CONFIG.worklet.maxFreq,
+        hopSize: CONFIG.worklet.hopSize,
+      });
       audio.connectMic(mic.source);
-      pitch = new PitchEngine(mic, audio.context.sampleRate);
+      pitch = new PitchEngine(mic);
       calibration.hidden = false;
       micBtn.textContent = '● Microphone live';
       micBtn.classList.add('live');
@@ -154,9 +160,15 @@ export function showStartScreen(
       }
       const clarity = raw.clarity;
       calClarityFill.style.width = `${Math.min(100, clarity * 100)}%`;
-      if (raw.midiFloat !== null && clarity > 0.9) {
+      if (raw.midiFloat !== null && clarity > CONFIG.clarityThreshold) {
         calNote.textContent = midiToNoteName(raw.midiFloat);
         calHz.textContent = `${Math.round(raw.freq!)} Hz · clarity ${clarity.toFixed(2)}`;
+        if (!windowTuned) {
+          // Narrow the worklet window to the singer's range (an octave below
+          // their comfortable hum) — a shorter window means lower latency.
+          windowTuned = true;
+          pitch?.setExpectedLowMidi(raw.midiFloat - 12);
+        }
         stablePitchSeen = true;
         updateStartEnabled();
       } else {

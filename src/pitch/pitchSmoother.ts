@@ -1,5 +1,5 @@
 import { CONFIG } from '../config';
-import type { RawPitchFrame } from './pitchDetector';
+import type { RawPitchFrame } from './pitchTypes';
 
 export interface SmoothedPitch {
   voiced: boolean;

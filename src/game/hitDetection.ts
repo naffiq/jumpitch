@@ -22,6 +22,7 @@ export class HitJudge {
   private states: NoteState[];
   private cursor = 0; // first not-yet-finished note
   private tolerance = CONFIG.hitToleranceSemitones * CONFIG.semitoneHeight;
+  private lastMatch = -1; // last setMatch target, to avoid re-ramping every frame
   readonly responseCount: number; // notes the player actually has to sing
 
   constructor(
@@ -44,7 +45,7 @@ export class HitJudge {
   /** t is latency-compensated transport time. */
   update(t: number, dt: number, voiced: boolean, sphereY: number): void {
     const notes = this.song.lead;
-    let anyOn = false;
+    let referenceActive = false;
 
     for (let i = this.cursor; i < notes.length; i++) {
       const note = notes[i];
@@ -70,32 +71,40 @@ export class HitJudge {
 
       const platformY = midiToY(note.midi, this.song.registerCenter);
       const on = voiced && Math.abs(sphereY - platformY) <= this.tolerance;
+
+      // Scoring (lenient padded window).
       if (on) {
-        anyOn = true;
         state.onTime += dt;
         state.onFrames++;
         state.errSum += Math.abs(sphereY - platformY) / CONFIG.semitoneHeight;
         state.offStreak = 0;
         if (!state.attacked) {
           state.attacked = true;
-          this.lead.attack(note.midi);
-          this.onNoteOn(i);
-        } else if (this.lead.playingMidi !== note.midi) {
-          this.lead.attack(note.midi); // legato into the next platform
+          this.onNoteOn(i); // platform flash on the first clean frame
         }
       } else if (state.attacked) {
         state.offStreak++;
       }
+
+      // Reference guide: sound the true note across its real span (not the pad)
+      // so the player has something to match — muffled off-pitch, bright on.
+      if (t >= note.time && t < note.time + note.duration) {
+        referenceActive = true;
+        if (this.lead.playingMidi !== note.midi) {
+          this.lead.attack(note.midi);
+          this.lastMatch = -1;
+        }
+        const q = on ? 1 : 0;
+        if (q !== this.lastMatch) {
+          this.lead.setMatch(q);
+          this.lastMatch = q;
+        }
+      }
     }
 
-    // Release the synth when the player has fallen off whatever was sounding.
-    if (!anyOn && this.lead.playingMidi !== null) {
-      const active = this.states.findIndex(
-        (s, i) => s.attacked && !s.judged && this.song.lead[i].midi === this.lead.playingMidi,
-      );
-      if (active === -1 || this.states[active].offStreak >= CONFIG.offFramesRelease) {
-        this.lead.release();
-      }
+    if (!referenceActive && this.lead.playingMidi !== null) {
+      this.lead.release();
+      this.lastMatch = -1;
     }
   }
 

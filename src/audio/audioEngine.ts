@@ -42,6 +42,12 @@ export class AudioEngine {
     source.connect(this.micGain);
   }
 
+  /** Resume the context if anything (tab switch, a dialog) suspended it. */
+  ensureRunning(): void {
+    const ctx = this.context as unknown as { state: string; resume: () => Promise<void> };
+    if (ctx.state !== 'running') void ctx.resume();
+  }
+
   /** Include raw voice in the recording mix. */
   setMicInRecording(enabled: boolean): void {
     this.micGain.gain.value = enabled ? 1 : 0;
@@ -68,6 +74,16 @@ export class AudioEngine {
 
   play(): void {
     Tone.getTransport().start('+0.1');
+  }
+
+  /** Freeze the game clock (and everything scheduled on it) for a pause. */
+  pause(): void {
+    Tone.getTransport().pause();
+  }
+
+  /** Resume from the paused position. */
+  resume(): void {
+    Tone.getTransport().start();
   }
 
   stop(): void {
