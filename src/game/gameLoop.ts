@@ -25,6 +25,8 @@ import { Palms } from '../render/vaporwave/palms';
 import { Compositor } from '../recording/compositor';
 import { RunRecorder, downloadRecording } from '../recording/recorder';
 import { Hud } from '../ui/hud';
+import { KaraokeBar } from '../ui/karaokeBar';
+import { YouTubePlayer } from '../ui/youtubePlayer';
 import { showPauseMenu } from '../ui/screens/pauseMenu';
 
 export interface GameOptions {
@@ -58,9 +60,20 @@ export class Game {
   private lead: LeadSynth;
   private demoLead: DemoLead | null = null;
   private hud: Hud;
+  private karaoke: KaraokeBar | null = null;
   private compositor = new Compositor();
   private recorder = new RunRecorder();
   private webcamPip: HTMLVideoElement | null = null;
+
+  // Backing-video mode (UltraStar #VIDEO): the YouTube video is the audio source
+  // and the master clock. The run waits for the user to press play.
+  private yt: YouTubePlayer | null = null;
+  private videoMode = false;
+  private videoGap = 0;
+  private videoPlaying = false;
+  private started = false;
+  private waitHintEl: HTMLElement | null = null;
+  private skipBtn: HTMLButtonElement | null = null;
 
   private rafId = 0;
   private lastTime = 0;
@@ -122,6 +135,7 @@ export class Game {
     this.scoring = new Scoring(this.judge.responseCount); // demo notes don't count
     this.hud = new Hud(opts.uiParent, true, () => this.togglePause());
     this.hud.pitchMeter.setRange(song.registerMin, song.registerMax);
+    if (song.lyricLines?.length) this.karaoke = new KaraokeBar(opts.uiParent, song.lyricLines);
   }
 
   start(): void {
@@ -141,17 +155,102 @@ export class Game {
       this.demoLead = new DemoLead(this.lead, demoNotes, (i) => this.platforms.hit(i));
     }
 
-    this.showWebcamPreview();
-    this.recorder.start(
-      this.compositor.canvas,
-      audio.recordDest.stream.getAudioTracks()[0],
-    );
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKey);
+
+    // Video and MIDI songs carry their own melody in the real backing, so mute
+    // the synth pitch-reference (it would clash / double the tune).
+    if (song.video || song.midiUrl) this.lead.mute();
+
+    if (song.video) {
+      // Sing to the real track: show the video in the corner, render a frozen
+      // first frame, and wait for the user to press play.
+      this.videoMode = true;
+      this.videoGap = song.video.gap;
+      this.renderFrozenFrame();
+      this.showWaitHint();
+      if (this.videoGap > 0.25) this.createSkipButton();
+      this.yt = new YouTubePlayer(this.opts.uiParent, {
+        videoId: song.video.youtubeId,
+        onPlay: () => this.onVideoPlay(),
+        onPause: () => this.onVideoPause(),
+        onEnded: () => void this.endRun(false),
+      });
+      return;
+    }
+
+    this.beginPlayback();
+  }
+
+  /** Start the render loop + recording (and, for synth songs, the transport). */
+  private beginPlayback(): void {
+    const { audio } = this.opts;
+    this.started = true;
+    this.showWebcamPreview();
+    this.recorder.start(this.compositor.canvas, audio.recordDest.stream.getAudioTracks()[0]);
     audio.ensureRunning(); // guard against a suspended context (so pitch input flows)
-    audio.play();
+    if (!this.videoMode) audio.play();
     this.lastTime = performance.now();
     this.rafId = requestAnimationFrame(this.frame);
+  }
+
+  /** The master game clock: the video time in video mode, else the transport. */
+  private clock(): number {
+    if (this.videoMode) return Math.max(0, (this.yt?.currentTime ?? 0) - this.videoGap);
+    return this.opts.audio.time;
+  }
+
+  private onVideoPlay(): void {
+    if (this.ending) return;
+    this.hideWaitHint();
+    if (!this.started) {
+      this.yt?.dock(); // slide the video from center to the corner as the game begins
+      this.videoPlaying = true;
+      this.beginPlayback();
+      return;
+    }
+    if (this.videoPlaying) return;
+    this.videoPlaying = true;
+    this.recorder.resume();
+    this.lastTime = performance.now();
+  }
+
+  private onVideoPause(): void {
+    if (this.ending || !this.started || !this.videoPlaying) return;
+    this.videoPlaying = false;
+    this.recorder.pause();
+    this.lead.releaseAll();
+    // The frame loop freezes itself (and stops accruing dt) while !videoPlaying.
+  }
+
+  private renderFrozenFrame(): void {
+    this.sphere.position.set(0, this.player.y, timeToZ(0));
+    this.rig.snap(this.player.y, 0);
+    this.postfx.render(0);
+  }
+
+  private showWaitHint(): void {
+    this.waitHintEl = document.createElement('div');
+    this.waitHintEl.className = 'yt-wait-hint';
+    this.waitHintEl.textContent = '▶ Press play on the video to begin';
+    this.opts.uiParent.appendChild(this.waitHintEl);
+  }
+
+  private hideWaitHint(): void {
+    this.waitHintEl?.remove();
+    this.waitHintEl = null;
+  }
+
+  private createSkipButton(): void {
+    this.skipBtn = document.createElement('button');
+    this.skipBtn.className = 'yt-skip';
+    this.skipBtn.textContent = 'Skip intro ⏭';
+    this.skipBtn.hidden = true;
+    this.skipBtn.addEventListener('click', () => {
+      this.yt?.seekTo(this.videoGap); // jump to the song start (t = 0)
+      if (this.skipBtn) this.skipBtn.hidden = true;
+    });
+    this.opts.uiParent.appendChild(this.skipBtn);
   }
 
   togglePause(): void {
@@ -163,10 +262,14 @@ export class Game {
   private pauseGame(): void {
     if (this.paused || this.ending) return;
     this.paused = true;
-    cancelAnimationFrame(this.rafId);
-    this.opts.audio.pause();
-    this.lead.releaseAll(); // stop the sustaining pitch-reference note (it would drone)
-    this.recorder.pause();
+    if (this.videoMode) {
+      this.yt?.pause(); // → onVideoPause freezes the loop + pauses the recorder
+    } else {
+      cancelAnimationFrame(this.rafId);
+      this.opts.audio.pause();
+      this.lead.releaseAll(); // stop the sustaining pitch-reference note (it would drone)
+      this.recorder.pause();
+    }
     this.pauseMenuDispose = showPauseMenu(this.opts.uiParent, {
       hasRecording: this.recorder.active,
       onContinue: () => this.resumeGame(),
@@ -180,6 +283,10 @@ export class Game {
     this.paused = false;
     this.pauseMenuDispose?.();
     this.pauseMenuDispose = null;
+    if (this.videoMode) {
+      this.yt?.play(); // → onVideoPlay resumes the loop + recorder
+      return;
+    }
     this.opts.audio.resume();
     this.recorder.resume();
     this.lastTime = performance.now(); // avoid a dt spike on the first resumed frame
@@ -213,11 +320,29 @@ export class Game {
   private frame = (now: number) => {
     if (this.ending) return;
     this.rafId = requestAnimationFrame(this.frame);
+
+    // Video mode: freeze (and don't accrue dt) whenever the video isn't playing.
+    if (this.videoMode && !this.videoPlaying) {
+      this.lastTime = now;
+      return;
+    }
+
     const dt = Math.min((now - this.lastTime) / 1000, CONFIG.maxDt);
     this.lastTime = now;
 
-    const { audio, pitch, song } = this.opts;
-    const t = audio.time; // the single game clock
+    const { pitch, song } = this.opts;
+    const t = this.clock(); // the single game clock (video time, or transport)
+
+    if (this.videoMode) {
+      if (t >= song.duration) {
+        this.endRun(false);
+        return;
+      }
+      if (this.skipBtn) {
+        // Offer the skip while the video is still in its pre-song intro.
+        this.skipBtn.hidden = (this.yt?.currentTime ?? 0) >= this.videoGap - 0.25;
+      }
+    }
 
     // 1. input
     const sample = pitch.sample();
@@ -262,6 +387,7 @@ export class Game {
 
     // 7. HUD (stats throttled; pitch meter every frame)
     this.hud.tick(dt);
+    this.karaoke?.tick(t); // lyrics track the audible clock, not judgedT
     const target = this.judge.currentTarget(judgedT);
     const inTol =
       target !== null &&
@@ -320,6 +446,11 @@ export class Game {
     }
     this.lead.dispose();
     this.hud.dispose();
+    this.karaoke?.dispose();
+    this.yt?.dispose();
+    this.hideWaitHint();
+    this.skipBtn?.remove();
+    this.skipBtn = null;
     this.postfx.dispose();
     disposeScene(this.scene);
   }

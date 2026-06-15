@@ -4,6 +4,9 @@ export interface NoteEvent {
   duration: number; // seconds
   velocity?: number; // 0..1
   demo?: boolean; // call-and-response: the synth demonstrates this note (not sung/scored)
+  syllable?: string; // karaoke: the word fragment sung on this note (UltraStar)
+  golden?: boolean; // karaoke: UltraStar "*" bonus note
+  freestyle?: boolean; // karaoke: UltraStar "F" freestyle note (sung, but loosely scored)
 }
 
 export type InstrumentId = 'drums' | 'bass' | 'pad' | 'pluck';
@@ -11,6 +14,12 @@ export type InstrumentId = 'drums' | 'bass' | 'pad' | 'pluck';
 export interface BackingTrack {
   name: string;
   instrument: InstrumentId;
+  notes: NoteEvent[];
+}
+
+/** A karaoke line: the run of notes between UltraStar "-" line breaks. */
+export interface LyricLine {
+  startTime: number; // seconds; onset of the first note in the line
   notes: NoteEvent[];
 }
 
@@ -23,6 +32,15 @@ export interface Song {
   registerCenter: number;
   registerMin: number;
   registerMax: number;
+  lyricLines?: LyricLine[]; // karaoke songs only; drives the on-screen lyrics
+  cover?: string; // karaoke songs only; cover-image URL for the song card
+  video?: SongVideo; // karaoke songs with a YouTube backing video (UltraStar #VIDEO)
+  midiUrl?: string; // karaoke songs whose backing comes from a MIDI file (UltraStar #MIDI)
+}
+
+export interface SongVideo {
+  youtubeId: string;
+  gap: number; // seconds; #VIDEOGAP — video start relative to the song clock
 }
 
 export type Grade = 'perfect' | 'good' | 'miss';
