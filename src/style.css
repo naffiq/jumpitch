@@ -215,11 +215,16 @@ html, body {
 .section-tick { width: 18px; height: 2px; background: var(--magenta); box-shadow: 0 0 8px var(--magenta); }
 
 /* song grid */
+/* overflow-x:clip swallows the selected card's spinning ring (its corners sweep
+   ~55px sideways) so no horizontal scrollbar; the generous top/bottom padding
+   absorbs the ring's vertical sweep on the first/last rows so it can't grow the
+   vertical scroll area either. The list still scrolls for its own length. */
 .song-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px; max-height: 62vh; overflow-y: auto; padding: 4px 6px 6px 4px; margin: -4px;
-  align-content: start;
+  gap: 16px; max-height: 62vh; overflow-x: clip; overflow-y: auto;
+  padding: 28px 14px; margin: -22px -8px; align-content: start;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 .song-card {
   position: relative; cursor: pointer; border-radius: 16px; padding: 8px; color: #fff;
   font-family: inherit; text-align: left;
@@ -228,17 +233,17 @@ html, body {
   transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, border-color .22s;
 }
 .song-card:hover { transform: translateY(-6px); border-color: rgba(0,240,255,.5); box-shadow: 0 16px 36px rgba(0,0,0,.5), 0 0 30px rgba(0,240,255,.28); }
-/* The ring spins by rotating its conic-gradient angle, NOT by transform:rotate —
-   a rotated box would sweep its corners past the card and trigger grid scrollbars. */
-@property --ring-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-@keyframes ringSpin { to { --ring-angle: 360deg; } }
+/* A 2px conic-gradient border ring (mask-composite cuts out the centre) that
+   visibly rotates. Its corners sweep ~55px past the card; the grid clips that
+   overflow (see .song-grid) so the spin never produces scrollbars. */
 .card-ring {
   position: absolute; inset: -2px; border-radius: 18px; padding: 2px; opacity: 0; pointer-events: none;
-  background: conic-gradient(from var(--ring-angle), var(--cyan), var(--magenta), var(--orange), var(--lime), var(--cyan));
+  background: conic-gradient(from 0deg, var(--cyan), var(--magenta), var(--orange), var(--lime), var(--cyan));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   box-shadow: 0 0 28px rgba(255,43,214,.45);
 }
+.song-card.selected .card-ring { opacity: 1; animation: spin 4s linear infinite; }
 .card-check {
   position: absolute; top: 14px; right: 14px; z-index: 3; opacity: 0;
   width: 26px; height: 26px; border-radius: 50%;
@@ -246,7 +251,6 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   color: #06121a; font-weight: 900; font-size: 15px; box-shadow: 0 0 16px rgba(183,255,0,.7);
 }
-.song-card.selected .card-ring { opacity: 1; animation: ringSpin 4s linear infinite; }
 .song-card.selected .card-check { opacity: 1; animation: pop .35s; }
 
 .song-cover {
