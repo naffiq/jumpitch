@@ -30,10 +30,14 @@ const midiFiles = import.meta.glob('../songs/*/*.{mid,midi}', {
   eager: true,
 }) as Record<string, string>;
 
+export type SongSource = 'video' | 'midi' | 'karaoke';
+
 export interface CatalogSong {
   id: string; // folder slug
   title: string;
-  meta: string; // card subtitle
+  artist?: string; // performing artist, when the chart declares one
+  source: SongSource; // how the backing is delivered — drives the card's type badge
+  meta: string; // card subtitle (artist · source), kept for search/back-compat
   cover?: string; // resolved image URL
   parse: () => Song;
 }
@@ -71,11 +75,17 @@ export const CATALOG: CatalogSong[] = Array.from(bySlug, ([id, text]) => {
   const cover = coverFor(id, text);
   const midiUrl = midiFor(id, text);
   const title = header(text, 'TITLE') ?? id;
-  const artist = header(text, 'ARTIST');
-  const source = midiUrl ? 'midi' : parseVideo(header(text, 'VIDEO'), NaN) ? 'video' : 'karaoke';
+  const artist = header(text, 'ARTIST') ?? undefined;
+  const source: SongSource = midiUrl
+    ? 'midi'
+    : parseVideo(header(text, 'VIDEO'), NaN)
+      ? 'video'
+      : 'karaoke';
   return {
     id,
     title,
+    artist,
+    source,
     meta: artist ? `${artist} · ${source}` : source,
     cover,
     parse: () => parseUltraStar(text, { cover, midiUrl }),
