@@ -13,10 +13,12 @@ export class LeadSynth {
   private matchGain: Tone.Gain;
   private reverb: Tone.Reverb;
   private delay: Tone.FeedbackDelay;
+  private out: Tone.Gain;
   private activeMidi: number | null = null;
 
   constructor() {
-    this.delay = new Tone.FeedbackDelay('8n.', 0.3).toDestination();
+    this.out = new Tone.Gain(1).toDestination();
+    this.delay = new Tone.FeedbackDelay('8n.', 0.3).connect(this.out);
     this.delay.wet.value = 0.25;
     this.reverb = new Tone.Reverb({ decay: 2.5, wet: 0.3 }).connect(this.delay);
     this.matchGain = new Tone.Gain(CONFIG.lead.refGain).connect(this.reverb);
@@ -73,6 +75,11 @@ export class LeadSynth {
     this.matchGain.gain.rampTo(gain, matchRamp, time);
   }
 
+  /** Silence the reference voice entirely (e.g. when singing to a real backing video). */
+  mute(): void {
+    this.out.gain.value = 0;
+  }
+
   get playingMidi(): number | null {
     return this.activeMidi;
   }
@@ -85,7 +92,7 @@ export class LeadSynth {
 
   dispose(): void {
     this.release();
-    [this.synth, this.matchFilter, this.matchGain, this.reverb, this.delay].forEach((n) =>
+    [this.synth, this.matchFilter, this.matchGain, this.reverb, this.delay, this.out].forEach((n) =>
       n.dispose(),
     );
   }

@@ -1,5 +1,11 @@
 import { Midi } from '@tonejs/midi';
-import { computeRegister, type InstrumentId, type NoteEvent, type Song } from '../types';
+import {
+  computeRegister,
+  type BackingTrack,
+  type InstrumentId,
+  type NoteEvent,
+  type Song,
+} from '../types';
 
 export interface TrackSummary {
   index: number;
@@ -58,6 +64,34 @@ function instrumentForTrack(channel: number, program: number): InstrumentId {
   if ((program >= 40 && program <= 55) || (program >= 88 && program <= 95)) return 'pad';
   if (program >= 16 && program <= 23) return 'pad'; // organs
   return 'pluck';
+}
+
+/**
+ * Load a MIDI file as the full backing for an UltraStar song with a #MIDI tag —
+ * it plays like an MP3 (ALL tracks, melody included), while the pitches/scoring
+ * stay driven by the .txt chart. MIDI note times are absolute seconds, so they
+ * line up with the (un-shifted) chart timeline.
+ */
+export async function loadMidiBacking(url: string): Promise<{ backing: BackingTrack[]; bpm: number }> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const midi = new Midi(await res.arrayBuffer());
+
+  const backing: BackingTrack[] = midi.tracks
+    .filter((track) => track.notes.length > 0)
+    .map((track) => ({
+      name: track.name || 'Track',
+      instrument: instrumentForTrack(track.channel, track.instrument?.number ?? 0),
+      notes: track.notes.map((n) => ({
+        time: n.time,
+        midi: n.midi,
+        duration: Math.max(0.05, n.duration),
+        velocity: n.velocity,
+      })),
+    }));
+  if (backing.length === 0) throw new Error('MIDI file contains no notes.');
+
+  return { backing, bpm: midi.header.tempos[0]?.bpm ?? 120 };
 }
 
 /** Collapse chords in the lead to their top note (melody must be monophonic). */

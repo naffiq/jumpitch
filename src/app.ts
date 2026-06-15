@@ -1,11 +1,14 @@
-// Screen state machine: Start → (MidiSelect) → Playing → Results → Start.
+// Screen state machine: Menu → (MidiSelect) → Playing → Results → Menu.
 // Owns the long-lived singletons (render core, audio engine) so the WebGL
-// context and AudioContext persist across runs.
+// context and AudioContext persist across runs. The mic + pitch engine are
+// acquired in the menu and kept for the whole session.
 
 import type { RunStats, Song } from './types';
 import { AudioEngine } from './audio/audioEngine';
 import { getBuiltinSong } from './audio/builtinSongs';
-import { parseMidiFile, buildSongFromMidi, type MidiInfo } from './audio/midiLoader';
+import { getCatalogSong } from './audio/catalog';
+import { parseUltraStar } from './audio/ultrastar';
+import { parseMidiFile, buildSongFromMidi, loadMidiBacking, type MidiInfo } from './audio/midiLoader';
 import { PitchEngine } from './pitch/pitchEngine';
 import { createRenderCore, type RenderCore } from './render/sceneSetup';
 import { Game } from './game/gameLoop';
@@ -20,7 +23,7 @@ export class App {
   private uiRoot: HTMLElement;
   private disposeScreen: (() => void) | null = null;
 
-  // Persisted across screens once acquired.
+  // Acquired in the menu's mic step, persisted across screens.
   private pitch: PitchEngine | null = null;
   private webcam: Webcam | null = null;
   private wantWebcam = false;
@@ -33,7 +36,7 @@ export class App {
   }
 
   start(): void {
-    this.toStart();
+    this.toMenu();
   }
 
   private clearScreen(): void {
@@ -41,28 +44,59 @@ export class App {
     this.disposeScreen = null;
   }
 
-  private toStart(): void {
+  private toMenu(): void {
     this.clearScreen();
-    this.disposeScreen = showStartScreen(this.uiRoot, this.audio, (result) =>
-      this.onStartChosen(result),
+    this.disposeScreen = showStartScreen(
+      this.uiRoot,
+      { audio: this.audio, pitch: this.pitch },
+      (result) => this.onStartChosen(result),
+      (pitch) => {
+        this.pitch = pitch;
+      },
     );
   }
 
   private async onStartChosen(result: StartResult): Promise<void> {
-    this.pitch = result.pitch;
     this.wantWebcam = result.webcam;
     this.includeVoice = result.includeVoice;
 
-    if ('builtin' in result.songChoice) {
-      await this.beginRun(getBuiltinSong(result.songChoice.builtin));
+    const choice = result.songChoice;
+    if ('catalog' in choice) {
+      const song = getCatalogSong(choice.catalog);
+      await this.attachMidiBacking(song);
+      await this.beginRun(song);
+    } else if ('builtin' in choice) {
+      await this.beginRun(getBuiltinSong(choice.builtin));
+    } else if ('ultrastarText' in choice) {
+      try {
+        await this.beginRun(parseUltraStar(choice.ultrastarText));
+      } catch (err) {
+        this.showToast(`Could not read ${choice.name}: ${(err as Error).message}`);
+        this.toMenu();
+      }
     } else {
       try {
-        const info = await parseMidiFile(result.songChoice.midiFile);
+        const info = await parseMidiFile(choice.midiFile);
         this.toMidiSelect(info);
       } catch (err) {
-        alert(`Could not read MIDI: ${(err as Error).message}`);
-        this.toStart();
+        this.showToast(`Could not read MIDI: ${(err as Error).message}`);
+        this.toMenu();
       }
+    }
+  }
+
+  /** Replace a #MIDI song's fallback synth backing with the real arrangement. */
+  private async attachMidiBacking(song: Song): Promise<void> {
+    if (!song.midiUrl) return;
+    try {
+      const { backing, bpm } = await loadMidiBacking(song.midiUrl);
+      if (backing.length > 0) {
+        song.backing = backing;
+        song.bpm = bpm;
+      }
+    } catch (err) {
+      // Non-blocking — the synth backing baked in at parse stays as a fallback.
+      this.showToast(`MIDI backing failed (${(err as Error).message}); using synth.`);
     }
   }
 
@@ -74,7 +108,7 @@ export class App {
       (leadIndex) => {
         void this.beginRun(buildSongFromMidi(info, leadIndex));
       },
-      () => this.toStart(),
+      () => this.toMenu(),
     );
   }
 
@@ -89,8 +123,7 @@ export class App {
         // pitch input) tells the player.
         console.warn('[jumpitch] webcam unavailable:', err);
         const name = (err as Error).name;
-        const hint =
-          name === 'NotReadableError' ? ' — close other apps using the camera' : '';
+        const hint = name === 'NotReadableError' ? ' — close other apps using the camera' : '';
         this.showToast(`Webcam off (${name})${hint}. Playing without it.`);
         this.webcam = null;
       }
@@ -113,7 +146,7 @@ export class App {
       onExitToMenu: () => {
         this.game = null;
         this.stopWebcam();
-        this.toStart();
+        this.toMenu();
       },
     });
     this.game.start();
@@ -128,7 +161,7 @@ export class App {
       () => void this.beginRun(song),
       () => {
         this.stopWebcam();
-        this.toStart();
+        this.toMenu();
       },
     );
   }
