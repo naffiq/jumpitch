@@ -27,7 +27,7 @@ export function showResultsScreen(
       </div>
       <video class="replay" src="${url}" controls autoplay muted loop playsinline></video>
       <div class="results-actions">
-        <a class="btn-download" href="${url}" download="jumpitch-run.webm">⤓ Download .webm</a>
+        <a class="btn-download" href="${url}" download="neopitch-run.webm">⤓ Download .webm</a>
         <button class="btn-secondary btn-retry">↻ Retry</button>
         <button class="btn-secondary btn-menu">Menu</button>
       </div>

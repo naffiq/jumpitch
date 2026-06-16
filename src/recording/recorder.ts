@@ -63,7 +63,7 @@ export class RunRecorder {
 }
 
 /** Trigger a browser download of a recording blob. */
-export function downloadRecording(blob: Blob, filename = 'jumpitch-run.webm'): void {
+export function downloadRecording(blob: Blob, filename = 'neopitch-run.webm'): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
