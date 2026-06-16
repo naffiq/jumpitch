@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  @keyframes np-grid{from{background-position:0 0,0 0}to{background-position:0 64px,0 64px}}
+  @keyframes np-sun{0%,100%{filter:drop-shadow(0 0 30px rgba(255,80,200,.5))}50%{filter:drop-shadow(0 0 64px rgba(255,140,66,.62))}}
+  @keyframes np-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  html,body{width:1200px;height:630px;overflow:hidden;background:#07040e;font-family:'Rajdhani',sans-serif}
+  .stage{position:relative;width:1200px;height:630px;overflow:hidden;color:#fff;
+    background:radial-gradient(120% 95% at 28% -10%,#2a0b52,#140530 44%,#08010f 80%)}
+  .sun{position:absolute;left:30%;top:40%;width:520px;height:520px;transform:translate(-50%,-50%);border-radius:50%;
+    background:linear-gradient(180deg,#ffd36b,#ff8c42 36%,#ff2bd6 78%,#7b2bff);opacity:.8;animation:np-sun 6s ease-in-out infinite;
+    -webkit-mask-image:repeating-linear-gradient(180deg,#000 0 14px,transparent 14px 20px),linear-gradient(180deg,#000 56%,transparent 92%);
+    mask-image:repeating-linear-gradient(180deg,#000 0 14px,transparent 14px 20px),linear-gradient(180deg,#000 56%,transparent 92%);
+    -webkit-mask-composite:source-in;mask-composite:intersect}
+  .horizon{position:absolute;left:0;right:0;top:58%;height:3px;background:linear-gradient(90deg,transparent,#ff2bd6,#00f0ff,#ff2bd6,transparent);box-shadow:0 0 26px 5px rgba(255,43,214,.5)}
+  .grid{position:absolute;left:-50%;width:200%;top:58%;bottom:-8%;
+    background-image:linear-gradient(rgba(0,240,255,.5) 2px,transparent 2px),linear-gradient(90deg,rgba(0,240,255,.38) 2px,transparent 2px);
+    background-size:64px 64px,64px 64px;transform:perspective(460px) rotateX(76deg);transform-origin:top center;animation:np-grid 2s linear infinite;
+    -webkit-mask-image:linear-gradient(to bottom,#000,transparent 86%);mask-image:linear-gradient(to bottom,#000,transparent 86%)}
+  .vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 35%,transparent 52%,rgba(5,1,12,.66))}
+  .scan{position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(180deg,#fff 0 1px,transparent 1px 3px)}
+  .content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 76px}
+  .lockup{display:flex;align-items:center;gap:24px}
+  .mark{filter:drop-shadow(0 0 20px rgba(0,240,255,.5));animation:np-float 6s ease-in-out infinite}
+  .word{font-family:'Orbitron',sans-serif;font-weight:900;font-size:96px;letter-spacing:1px;line-height:.9;
+    background:linear-gradient(118deg,#7ffcff,#00f0ff 36%,#ff2bd6);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 26px rgba(0,240,255,.3))}
+  .kata{font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;letter-spacing:14px;color:rgba(255,140,66,.9);margin-top:8px}
+  .tag{font-family:'Orbitron',sans-serif;font-weight:700;font-size:28px;letter-spacing:7px;color:rgba(183,255,0,.9);text-transform:uppercase;margin-top:30px}
+  .sub{font-family:'Rajdhani',sans-serif;font-weight:500;font-size:24px;color:rgba(255,255,255,.62);margin-top:16px;max-width:760px}
+  .ctas{display:flex;gap:12px;margin-top:32px}
+  .cta{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:1px;color:#06121a;background:linear-gradient(95deg,#ff2bd6,#ff8c42);padding:14px 26px;border-radius:12px;box-shadow:0 0 26px rgba(255,43,214,.5)}
+  .url{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:18px;color:rgba(0,240,255,.85);border:1.5px solid rgba(0,240,255,.4);padding:14px 24px;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="sun"></div>
+  <div class="horizon"></div>
+  <div class="grid"></div>
+  <div class="vignette"></div>
+  <div class="scan"></div>
+  <div class="content">
+    <div class="lockup">
+      <svg class="mark" width="128" height="107" viewBox="0 0 120 100">
+        <defs>
+          <linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00f0ff"/><stop offset=".55" stop-color="#7b8cff"/><stop offset="1" stop-color="#ff2bd6"/></linearGradient>
+          <radialGradient id="o" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#ffe2b6"/><stop offset=".4" stop-color="#ff9d4d"/><stop offset="1" stop-color="#e8531c"/></radialGradient>
+        </defs>
+        <rect x="6" y="72" width="34" height="12" rx="6" fill="url(#b)"/>
+        <rect x="30" y="52" width="34" height="12" rx="6" fill="url(#b)"/>
+        <rect x="54" y="32" width="34" height="12" rx="6" fill="url(#b)"/>
+        <circle cx="94" cy="22" r="13" fill="url(#o)"/>
+        <circle cx="89.5" cy="18" r="4" fill="rgba(255,255,255,.65)"/>
+      </svg>
+      <div>
+        <div class="word">neopitch</div>
+        <div class="kata">カラオケ</div>
+      </div>
+    </div>
+    <div class="tag">sing into the grid</div>
+    <div class="sub">Browser karaoke that scores your pitch live. Pick an anthem, hit the notes, ride the sunset.</div>
+    <div class="ctas">
+      <div class="cta">▶ play free</div>
+      <div class="url">neopitch.app</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

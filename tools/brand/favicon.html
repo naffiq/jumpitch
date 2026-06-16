@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  /* Seamless: grid scrolls exactly one 80px tile per 2s cycle. */
+  @keyframes np-grid{from{background-position:0 0,0 0}to{background-position:0 80px,0 80px}}
+  @keyframes np-sun{0%,100%{filter:drop-shadow(0 0 24px rgba(255,80,200,.5))}50%{filter:drop-shadow(0 0 56px rgba(255,140,66,.62))}}
+  @keyframes np-glow{0%,100%{filter:drop-shadow(0 0 26px rgba(0,240,255,.45))}50%{filter:drop-shadow(0 0 48px rgba(0,240,255,.7))}}
+  html,body{width:512px;height:512px;overflow:hidden;background:#07040e}
+  .stage{position:relative;width:512px;height:512px;overflow:hidden;
+    background:radial-gradient(130% 100% at 50% 0%,#2a0b52,#140530 48%,#08010f)}
+  .sun{position:absolute;left:50%;top:30%;width:384px;height:384px;transform:translate(-50%,-50%);border-radius:50%;
+    background:linear-gradient(180deg,#ffd36b,#ff8c42 36%,#ff2bd6 82%);opacity:.72;
+    animation:np-sun 6s ease-in-out infinite;
+    -webkit-mask-image:repeating-linear-gradient(180deg,#000 0 18px,transparent 18px 26px),linear-gradient(180deg,#000 56%,transparent 92%);
+    mask-image:repeating-linear-gradient(180deg,#000 0 18px,transparent 18px 26px),linear-gradient(180deg,#000 56%,transparent 92%);
+    -webkit-mask-composite:source-in;mask-composite:intersect}
+  .grid{position:absolute;left:-50%;width:200%;top:60%;bottom:-14%;
+    background-image:linear-gradient(rgba(0,240,255,.5) 4px,transparent 4px),linear-gradient(90deg,rgba(0,240,255,.36) 4px,transparent 4px);
+    background-size:80px 80px,80px 80px;
+    transform:perspective(560px) rotateX(74deg);transform-origin:top center;
+    animation:np-grid 2s linear infinite;
+    -webkit-mask-image:linear-gradient(to bottom,#000,transparent 86%);mask-image:linear-gradient(to bottom,#000,transparent 86%)}
+  .mark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;animation:np-glow 6s ease-in-out infinite}
+  .gloss{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 30%);pointer-events:none}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="sun"></div>
+  <div class="grid"></div>
+  <div class="mark">
+    <svg width="384" height="320" viewBox="0 0 120 100">
+      <defs>
+        <linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00f0ff"/><stop offset=".55" stop-color="#7b8cff"/><stop offset="1" stop-color="#ff2bd6"/></linearGradient>
+        <radialGradient id="o" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#ffe2b6"/><stop offset=".4" stop-color="#ff9d4d"/><stop offset="1" stop-color="#e8531c"/></radialGradient>
+      </defs>
+      <rect x="6" y="72" width="34" height="12" rx="6" fill="url(#b)"/>
+      <rect x="30" y="52" width="34" height="12" rx="6" fill="url(#b)"/>
+      <rect x="54" y="32" width="34" height="12" rx="6" fill="url(#b)"/>
+      <circle cx="94" cy="22" r="13" fill="url(#o)"/>
+      <circle cx="89.5" cy="18" r="4" fill="rgba(255,255,255,.65)"/>
+    </svg>
+  </div>
+  <div class="gloss"></div>
+</div>
+</body>
+</html>
