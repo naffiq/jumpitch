@@ -3,7 +3,7 @@
 // (enable → calibration → live pitch preview), STEP 2 capture options, STEP 3
 // launch (readiness chip + Start + .txt / MIDI upload). The mic + pitch engine,
 // once acquired, are handed back to the app so returning to the menu skips
-// re-enabling. The visual language follows the Jumpitch Menu design.
+// re-enabling. The visual language follows the Neopitch Menu design.
 
 import { midiToNoteName } from '../../types';
 import { CONFIG } from '../../config';
@@ -111,9 +111,34 @@ export function showStartScreen(
       <div class="menu-topline"></div>
 
       <div class="menu-header">
-        <div>
-          <h1 class="title-lockup">JUMP<span>PITCH</span></h1>
-          <div class="menu-tagline">PITCH-PERFECT KARAOKE</div>
+        <div class="brand-lockup">
+          <div class="brand-row">
+            <svg class="brand-mark" width="76" height="63" viewBox="0 0 120 100" aria-hidden="true">
+              <defs>
+                <linearGradient id="brandMk_b" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#00f0ff"/>
+                  <stop offset=".55" stop-color="#7b8cff"/>
+                  <stop offset="1" stop-color="#ff2bd6"/>
+                </linearGradient>
+                <radialGradient id="brandMk_o" cx=".35" cy=".3" r=".85">
+                  <stop offset="0" stop-color="#ffe2b6"/>
+                  <stop offset=".4" stop-color="#ff9d4d"/>
+                  <stop offset="1" stop-color="#e8531c"/>
+                </radialGradient>
+              </defs>
+              <rect x="6" y="72" width="34" height="12" rx="6" fill="url(#brandMk_b)"/>
+              <rect x="30" y="52" width="34" height="12" rx="6" fill="url(#brandMk_b)"/>
+              <rect x="54" y="32" width="34" height="12" rx="6" fill="url(#brandMk_b)"/>
+              <circle cx="94" cy="22" r="13" fill="url(#brandMk_o)"/>
+              <circle cx="89.5" cy="18" r="4" fill="rgba(255,255,255,.65)"/>
+            </svg>
+            <h1 class="title-lockup">neopitch</h1>
+          </div>
+          <div class="menu-tagline">
+            <span class="tag-jp">カラオケ</span>
+            <span class="tag-dot"></span>
+            <span class="tag-text">SING INTO THE GRID</span>
+          </div>
         </div>
         <div class="track-count">${CATALOG.length} TRACKS</div>
       </div>

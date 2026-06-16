@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  @keyframes np-grid{from{background-position:0 0,0 0}to{background-position:0 64px,0 64px}}
+  @keyframes np-sun{0%,100%{filter:drop-shadow(0 0 30px rgba(255,80,200,.5))}50%{filter:drop-shadow(0 0 66px rgba(255,140,66,.62))}}
+  @keyframes np-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  html,body{width:1080px;height:1080px;overflow:hidden;background:#07040e;font-family:'Rajdhani',sans-serif}
+  .stage{position:relative;width:1080px;height:1080px;overflow:hidden;color:#fff;
+    background:radial-gradient(115% 80% at 50% -6%,#2a0b52,#140530 42%,#08010f 78%)}
+  .sun{position:absolute;left:50%;top:34%;width:560px;height:560px;transform:translate(-50%,-50%);border-radius:50%;
+    background:linear-gradient(180deg,#ffd36b,#ff8c42 34%,#ff2bd6 78%,#7b2bff);opacity:.82;animation:np-sun 6s ease-in-out infinite;
+    -webkit-mask-image:repeating-linear-gradient(180deg,#000 0 15px,transparent 15px 21px),linear-gradient(180deg,#000 55%,transparent 92%);
+    mask-image:repeating-linear-gradient(180deg,#000 0 15px,transparent 15px 21px),linear-gradient(180deg,#000 55%,transparent 92%);
+    -webkit-mask-composite:source-in;mask-composite:intersect}
+  .horizon{position:absolute;left:0;right:0;top:52%;height:3px;background:linear-gradient(90deg,transparent,#ff2bd6,#00f0ff,#ff2bd6,transparent);box-shadow:0 0 30px 6px rgba(255,43,214,.55)}
+  .grid{position:absolute;left:-50%;width:200%;top:52%;bottom:-8%;
+    background-image:linear-gradient(rgba(0,240,255,.5) 2px,transparent 2px),linear-gradient(90deg,rgba(0,240,255,.4) 2px,transparent 2px);
+    background-size:64px 64px,64px 64px;transform:perspective(440px) rotateX(76deg);transform-origin:top center;animation:np-grid 2s linear infinite;
+    -webkit-mask-image:linear-gradient(to bottom,#000,transparent 86%);mask-image:linear-gradient(to bottom,#000,transparent 86%)}
+  .vignette{position:absolute;inset:0;background:radial-gradient(115% 85% at 50% 35%,transparent 50%,rgba(5,1,12,.68))}
+  .scan{position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(180deg,#fff 0 1px,transparent 1px 3px)}
+  .content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 70px}
+  .mark{filter:drop-shadow(0 0 22px rgba(0,240,255,.55));animation:np-float 6s ease-in-out infinite}
+  .word{font-family:'Orbitron',sans-serif;font-weight:900;font-size:132px;letter-spacing:1px;line-height:.9;margin-top:34px;
+    background:linear-gradient(118deg,#7ffcff,#00f0ff 36%,#ff2bd6);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 30px rgba(0,240,255,.3))}
+  .kata{font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:40px;letter-spacing:20px;color:rgba(255,140,66,.92);margin-top:14px;padding-left:20px}
+  .tag{font-family:'Orbitron',sans-serif;font-weight:700;font-size:32px;letter-spacing:8px;color:rgba(183,255,0,.9);text-transform:uppercase;margin-top:30px}
+  .sub{font-family:'Rajdhani',sans-serif;font-weight:500;font-size:28px;color:rgba(255,255,255,.6);margin-top:22px;max-width:720px}
+  .cta{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;letter-spacing:1px;color:#06121a;background:linear-gradient(95deg,#ff2bd6,#ff8c42);padding:20px 44px;border-radius:14px;margin-top:48px;box-shadow:0 0 34px rgba(255,43,214,.55)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="sun"></div>
+  <div class="horizon"></div>
+  <div class="grid"></div>
+  <div class="vignette"></div>
+  <div class="scan"></div>
+  <div class="content">
+    <svg class="mark" width="220" height="183" viewBox="0 0 120 100">
+      <defs>
+        <linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00f0ff"/><stop offset=".55" stop-color="#7b8cff"/><stop offset="1" stop-color="#ff2bd6"/></linearGradient>
+        <radialGradient id="o" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#ffe2b6"/><stop offset=".4" stop-color="#ff9d4d"/><stop offset="1" stop-color="#e8531c"/></radialGradient>
+      </defs>
+      <rect x="6" y="72" width="34" height="12" rx="6" fill="url(#b)"/>
+      <rect x="30" y="52" width="34" height="12" rx="6" fill="url(#b)"/>
+      <rect x="54" y="32" width="34" height="12" rx="6" fill="url(#b)"/>
+      <circle cx="94" cy="22" r="13" fill="url(#o)"/>
+      <circle cx="89.5" cy="18" r="4" fill="rgba(255,255,255,.65)"/>
+    </svg>
+    <div class="word">neopitch</div>
+    <div class="kata">カラオケ</div>
+    <div class="tag">sing into the grid</div>
+    <div class="sub">live pitch scoring · your favorite anthems · right in the browser</div>
+    <div class="cta">▶ play free at neopitch.naffiq.com</div>
+  </div>
+</div>
+</body>
+</html>

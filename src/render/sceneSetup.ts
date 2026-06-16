@@ -40,7 +40,7 @@ export function createCamera(): THREE.PerspectiveCamera {
     0.1,
     600,
   );
-  camera.position.set(CONFIG.cam.sideOffset, 3, 9);
+  camera.position.set(0, CONFIG.cam.distance * 0.5, CONFIG.cam.distance);
   return camera;
 }
 

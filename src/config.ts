@@ -69,15 +69,17 @@ export const CONFIG = {
   recordFps: 60,
   videoBitsPerSecond: 6_000_000,
 
-  // Camera (side-on / profile view)
+  // Camera (chase view: behind the sphere, swung ~30° to the side → 3/4 view)
   cameraFov: 52,
   cam: {
-    sideOffset: 13, // camera distance out along +X from the x=0 play plane
-    ahead: 5.5, // shifts the sphere toward the left third (more lookahead on the right)
-    tilt: 4, // camera sits this far above its look point → gentle downward tilt
-    followFactor: 0.25, // how much the camera's height tracks the sphere
-    followClampLo: -3,
-    followClampHi: 5,
+    distance: 13, // camera distance from its look point (landscape baseline)
+    portraitZoomOut: 0.7, // extra pull-back on narrow/portrait screens: dist *= 1 + (1-aspect)*this
+    azimuthDeg: 30, // horizontal swing from straight-behind → over-the-shoulder angle
+    elevationDeg: 12, // gentle upward offset → slight downward tilt so the floor reads
+    ahead: 5, // aim this far ahead of the sphere (toward -Z) so it sits low in frame
+    followFactor: 1, // height fully tracks the sphere so it stays framed
+    followClampLo: -8,
+    followClampHi: 8,
     followTau: 0.25,
   },
 

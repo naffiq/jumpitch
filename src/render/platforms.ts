@@ -3,7 +3,7 @@ import { CONFIG } from '../config';
 import type { PlatformDef } from '../game/level';
 
 const PLATFORM_WIDTH = 2.2;
-const PLATFORM_THICKNESS = 0.18;
+const PLATFORM_THICKNESS = 0.26; // a bit deeper so the shaded side face gives the bar volume
 
 /**
  * All platforms in one InstancedMesh; per-instance HDR color drives bloom.
@@ -24,7 +24,23 @@ export class Platforms {
 
   constructor(scene: THREE.Scene, private defs: PlatformDef[]) {
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshBasicMaterial({ toneMapped: false });
+    // Bake a top-lit vertical gradient into the slab — a bright top edge fading
+    // to a darker underside — so each bar reads as a 3D solid with volume, the
+    // way the design's note bars do. These per-vertex factors MULTIPLY the
+    // per-instance flash colour in the shader (USE_COLOR × USE_INSTANCING_COLOR),
+    // so the bloom/flash system is left completely intact.
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const TOP = 1.2; // top face / top edge — brightest
+    const BOTTOM = 0.5; // underside — darkest
+    for (let i = 0; i < pos.count; i++) {
+      const f = BOTTOM + (TOP - BOTTOM) * (pos.getY(i) + 0.5); // y: -0.5..0.5 → 0..1
+      colors[i * 3] = f;
+      colors[i * 3 + 1] = f;
+      colors[i * 3 + 2] = f;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.MeshBasicMaterial({ toneMapped: false, vertexColors: true });
     this.mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, defs.length));
     this.flash = new Float32Array(defs.length);
     this.baseColors = [];

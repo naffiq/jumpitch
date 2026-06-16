@@ -1,4 +1,4 @@
-# Jumpitch
+# neopitch
 
 A web-based 3D vaporwave rhythm game you control **with your voice**. A neon sphere auto-runs through a synthwave world; you sing the song's lead melody into your mic, and your pitch sets the sphere's height. The melody's notes are floating platforms (further along = later in the song, higher up = higher pitch). The backing track plays with the lead muted — land on platforms in time and those notes actually sound, so a clean run rebuilds the whole song. Ceiling spikes punish singing too sharp.
 

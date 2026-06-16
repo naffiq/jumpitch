@@ -121,7 +121,7 @@ export class App {
         // Permission denied / camera busy — proceed without it. A non-blocking
         // toast (NOT alert(), which would suspend the AudioContext and freeze
         // pitch input) tells the player.
-        console.warn('[jumpitch] webcam unavailable:', err);
+        console.warn('[neopitch] webcam unavailable:', err);
         const name = (err as Error).name;
         const hint = name === 'NotReadableError' ? ' — close other apps using the camera' : '';
         this.showToast(`Webcam off (${name})${hint}. Playing without it.`);
