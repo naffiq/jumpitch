@@ -19,13 +19,27 @@ export class Hud {
     this.root = document.createElement('div');
     this.root.className = 'hud';
     this.root.innerHTML = `
+      <div class="hud-scrim"></div>
       <div class="hud-top">
-        <div class="hud-stat"><span class="hud-label">SCORE</span><span class="hud-score">0</span></div>
-        <div class="hud-stat"><span class="hud-label">STREAK</span><span class="hud-streak">×0</span></div>
-        <div class="hud-stat"><span class="hud-label">ACC</span><span class="hud-acc">100%</span></div>
-        <div class="hud-health"></div>
-        ${recording ? '<div class="hud-rec"><span class="rec-dot"></span>REC</div>' : ''}
-        <button class="hud-pause" title="Pause (Esc)">⏸</button>
+        <div class="hud-stats">
+          <div class="hud-chip chip-cyan">
+            <span class="hud-label">SCORE</span>
+            <span class="hud-score">0</span>
+          </div>
+          <div class="hud-chip chip-magenta">
+            <span class="hud-label">STREAK</span>
+            <span class="hud-streak">×0</span>
+          </div>
+          <div class="hud-chip chip-orange">
+            <span class="hud-label">ACCURACY</span>
+            <span class="hud-acc">100%</span>
+          </div>
+          <div class="hud-chip hud-health-chip"><div class="hud-health"></div></div>
+        </div>
+        <div class="hud-right">
+          ${recording ? '<div class="hud-rec"><span class="rec-dot"></span><span>REC</span></div>' : ''}
+          <button class="hud-pause" title="Pause (Esc)">⏸</button>
+        </div>
       </div>
       <div class="hud-prompt"></div>
       <div class="hud-judgement"></div>
@@ -43,7 +57,7 @@ export class Hud {
   }
 
   updateStats(scoring: Scoring): void {
-    this.scoreEl.textContent = String(scoring.score);
+    this.scoreEl.textContent = scoring.score.toLocaleString();
     this.streakEl.textContent = `×${scoring.streak}`;
     this.accEl.textContent = `${Math.round(scoring.accuracy * 100)}%`;
     this.setHealth(scoring.health);
@@ -71,8 +85,10 @@ export class Hud {
   flashJudgement(grade: Grade): void {
     const text = grade === 'perfect' ? 'PERFECT' : grade === 'good' ? 'GOOD' : 'MISS';
     this.judgementEl.textContent = text;
+    this.judgementEl.className = 'hud-judgement';
+    void this.judgementEl.offsetWidth; // restart the pop animation, even on a repeated grade
     this.judgementEl.className = `hud-judgement show grade-${grade}`;
-    this.judgementTimer = 0.7;
+    this.judgementTimer = 0.9;
   }
 
   tick(dt: number): void {

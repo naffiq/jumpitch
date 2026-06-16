@@ -64,6 +64,7 @@ export class Game {
   private compositor = new Compositor();
   private recorder = new RunRecorder();
   private webcamPip: HTMLVideoElement | null = null;
+  private webcamRing: HTMLElement | null = null;
 
   // Backing-video mode (UltraStar #VIDEO): the YouTube video is the audio source
   // and the master clock. The run waits for the user to press play.
@@ -110,10 +111,18 @@ export class Game {
     this.grid = new GridFloor(this.scene, this.floor);
     this.palms = new Palms(this.scene, this.floor);
 
+    // A lit material (not Basic) so the scene lights model the sphere as a round
+    // solid — a radial highlight up top fading to a shaded underside, the volume
+    // the design's ball has. Emissive keeps it glowing so the bright rim still
+    // blooms into the warm halo.
     this.sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(CONFIG.sphereRadius, 32, 24),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(CONFIG.colors.sphere).multiplyScalar(1.5),
+      new THREE.SphereGeometry(CONFIG.sphereRadius, 48, 32),
+      new THREE.MeshStandardMaterial({
+        color: CONFIG.colors.sphere,
+        emissive: new THREE.Color(CONFIG.colors.sphere),
+        emissiveIntensity: 0.3,
+        roughness: 0.4,
+        metalness: 0.0,
         toneMapped: false,
       }),
     );
@@ -306,15 +315,24 @@ export class Game {
     else this.opts.onExitToMenu();
   }
 
-  /** Mount the live webcam feed as an on-screen picture-in-picture bubble. */
+  /** Mount the live webcam feed as an on-screen picture-in-picture bubble:
+   * a spinning neon ring (outer) wrapping a counter-rotating round mask so the
+   * mirrored video stays upright while the rainbow ring rotates. */
   private showWebcamPreview(): void {
     const video = this.opts.webcamVideo;
     if (!video) return;
-    video.classList.add('webcam-pip');
+    const ring = document.createElement('div');
+    ring.className = 'webcam-pip';
+    const inner = document.createElement('div');
+    inner.className = 'webcam-inner';
+    video.classList.add('webcam-vid');
     video.muted = true;
-    this.opts.uiParent.appendChild(video);
+    inner.appendChild(video);
+    ring.appendChild(inner);
+    this.opts.uiParent.appendChild(ring);
     void video.play().catch(() => {});
     this.webcamPip = video;
+    this.webcamRing = ring;
   }
 
   private frame = (now: number) => {
@@ -440,9 +458,13 @@ export class Game {
     this.opts.audio.setMicInRecording(false);
     this.demoLead?.dispose();
     if (this.webcamPip) {
-      this.webcamPip.classList.remove('webcam-pip');
-      this.webcamPip.remove(); // detach from DOM; the stream stays alive for replays
+      this.webcamPip.classList.remove('webcam-vid');
+      this.webcamPip.remove(); // detach the video; the stream stays alive for replays
       this.webcamPip = null;
+    }
+    if (this.webcamRing) {
+      this.webcamRing.remove();
+      this.webcamRing = null;
     }
     this.lead.dispose();
     this.hud.dispose();
